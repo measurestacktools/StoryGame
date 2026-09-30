@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StoryGame — AI Adventure</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">📖 StoryGame</div>
+  <div class="top-actions">
+    <span id="statusDot" class="dot" title="API key status"></span>
+    <span id="statusText" class="status-text">checking…</span>
+    <button id="settingsBtn" class="btn ghost" aria-label="Settings">⚙️ Settings</button>
+  </div>
+</header>
+
+<main class="layout">
+  <!-- SETUP -->
+  <section id="setupCard" class="card">
+    <h2>Start a new adventure</h2>
+    <div class="grid2">
+      <label>Genre
+        <select id="genre">
+          <option>Fantasy</option><option>Sci-Fi</option><option>Mystery</option>
+          <option>Horror</option><option>Comedy</option>
+        </select>
+      </label>
+      <label>Style
+        <select id="style"><option>Epic</option><option>Dark</option><option>Light</option></select>
+      </label>
+    </div>
+    <label>Setting <input id="setting" maxlength="200" placeholder="e.g. a floating city above the clouds"></label>
+    <label>Character <input id="character" maxlength="200" placeholder="e.g. a retired sky-pirate with a brass compass"></label>
+    <button id="startBtn" class="btn primary">Begin Adventure</button>
+    <p id="setupErr" class="err"></p>
+  </section>
+
+  <!-- GAME -->
+  <section id="gameCard" class="card hidden">
+    <div class="worldbar">
+      <div><h2 id="gTitle">—</h2><div id="gMeta" class="muted"></div></div>
+      <div class="pillrow">
+        <span class="pill" id="pTurn">Turn 0</span>
+        <span class="pill" id="pLoc">📍 —</span>
+        <span class="pill" id="pHealth">❤️ 100</span>
+      </div>
+    </div>
+
+    <div class="cols">
+      <div class="maincol">
+        <div class="block"><h3>🌍 World / Event</h3><p id="eventText" class="story"></p></div>
+        <div class="block"><h3>⚡ Consequence</h3><p id="conseqText" class="story muted2">Your choices will shape the tale…</p></div>
+        <div class="block"><h3>🗺️ Choices</h3>
+          <div id="choices" class="choices"></div>
+          <div class="customrow">
+            <input id="customInput" maxlength="500" placeholder="Or type your own action… (≤500 chars)">
+            <button id="customBtn" class="btn">Go</button>
+          </div>
+        </div>
+        <div class="toolbar">
+          <button id="exportBtn" class="btn ghost">⬇ Export .md</button>
+          <button id="copyBtn" class="btn ghost">📋 Copy</button>
+          <button id="restartBtn" class="btn danger">↺ Restart</button>
+        </div>
+        <p id="gameErr" class="err"></p>
+      </div>
+      <aside class="sidecol">
+        <div class="block"><h3>🎒 Inventory & State</h3>
+          <div id="invList" class="inv">—</div>
+          <div id="flagList" class="flags muted"></div>
+          <div class="healthbar"><div id="healthFill"></div></div>
+        </div>
+        <div class="block"><h3>📜 Story Log</h3><div id="storyLog" class="log"></div></div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- FINALE -->
+  <section id="finaleCard" class="card hidden finale">
+    <h2 id="endTitle">The End</h2>
+    <p id="endEpilogue" class="story"></p>
+    <div class="toolbar">
+      <button id="exportBtn2" class="btn ghost">⬇ Export .md</button>
+      <button id="againBtn" class="btn primary">▶ Play Again</button>
+    </div>
+  </section>
+</main>
+
+<!-- SETTINGS MODAL -->
+<div id="settingsModal" class="modal hidden">
+  <div class="modal-box">
+    <h3>Groq API Key</h3>
+    <p class="muted">Stored in server memory only. Never in localStorage. <code>/api/status</code> shows presence only.</p>
+    <input id="keyInput" type="password" placeholder="gsk_…">
+    <div class="toolbar">
+      <button id="saveKeyBtn" class="btn primary">Save & Verify</button>
+      <button id="delKeyBtn" class="btn danger">Clear</button>
+      <button id="closeSettings" class="btn ghost">Close</button>
+    </div>
+    <p id="keyMsg" class="muted"></p>
+  </div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
