@@ -167,6 +167,7 @@ async function restore() {
     const r = await fetch("/api/story");
     if (!r.ok) return;
     const j = await r.json();
+    if (!j.active && !j.title) return; // no story yet — stay on the setup page
     state.title = j.title || "";
     state.log = []; $("storyLog").innerHTML = "";
     (j.log || []).forEach(e => pushLog(e.turn, e.type === "opening" ? "Opening" : (e.text || "Turn"), [e.consequence, e.event].filter(Boolean).join("\n\n") || e.text || ""));

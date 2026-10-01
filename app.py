@@ -359,7 +359,9 @@ def api_restart():
 @app.get("/api/story")
 def api_story():
     if not _STORY:
-        return JSONResponse({"error": "No story yet. Start a new adventure first."}, status_code=404)
+        # 200 (not 404): boot-restore polls this on every page load,
+        # and a missing story is a normal state, not an error.
+        return {"active": False}
     return _STORY
 
 
