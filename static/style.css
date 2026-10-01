@@ -1,31 +1,108 @@
-:root{--bg:#0f1420;--card:#182034;--ink:#eef2ff;--mut:#9aa7c7;--acc:#7c6cf6;--ok:#3ecf8e;--bad:#ff6b6b}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Segoe UI,system-ui,Arial,sans-serif}
-.topbar{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;background:#0b0f1a;border-bottom:1px solid #263}
-.topbar{border-bottom:1px solid #26314f}.brand{font-weight:800;font-size:20px}
-.top-actions{display:flex;align-items:center;gap:10px}.dot{width:12px;height:12px;border-radius:50%;background:#555}.dot.ok{background:var(--ok)}.dot.no{background:var(--bad)}
-.status-text{color:var(--mut);font-size:13px}
-.layout{max-width:1100px;margin:20px auto;padding:0 14px;display:flex;flex-direction:column;gap:16px}
-.card{background:var(--card);border:1px solid #2a3652;border-radius:14px;padding:18px}
-.card h2{margin:0 0 8px}.muted{color:var(--mut)}.muted2{color:#c6cfee}
+/* ILLUMINATED TOME theme — dark parchment + oxblood storybook. Burgundy & antique gold. No gradients-as-slop, no glass, no orbs. */
+:root{
+  --oxblood:#241014;
+  --oxblood-2:#38161c;
+  --parchment:#e9d9ae;
+  --parchment-dim:#c9b489;
+  --gold:#c9a227;
+  --gold-soft:#8a6f1c;
+  --ink:#f0e4c0;
+  --mut:#b39a6d;
+  --blood:#7a2230;
+  --line:#6b5326;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;color:var(--ink);
+  font-family:Georgia,"Palatino Linotype","Book Antiqua",serif;
+  background:var(--oxblood);
+  background-image:
+    repeating-linear-gradient(90deg,rgba(201,162,39,.05) 0 1px,transparent 1px 90px),
+    repeating-linear-gradient(0deg,rgba(0,0,0,.22) 0 3px,transparent 3px 7px);
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;
+  border:14px solid transparent;
+  border-image:none;outline:3px double var(--gold-soft);outline-offset:-18px;
+}
+.topbar{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:14px 22px;background:#170a0d;border-bottom:3px double var(--gold);
+}
+.brand{font-weight:700;font-size:22px;letter-spacing:.06em;color:var(--gold)}
+.brand::after{content:" · An Illuminated Tome";font-size:12px;color:var(--mut);letter-spacing:.2em}
+.top-actions{display:flex;align-items:center;gap:10px}
+.dot{width:12px;height:12px;border-radius:50%;background:#555;border:1px solid var(--gold)}
+.dot.ok{background:#7a9a3a}.dot.no{background:var(--blood)}
+.status-text{color:var(--mut);font-size:13px;font-style:italic}
+.layout{max-width:1100px;margin:22px auto;padding:0 18px 40px;display:flex;flex-direction:column;gap:16px}
+.card{
+  background:#2e1418;border:2px solid var(--gold-soft);border-radius:2px;padding:22px 24px;
+  box-shadow:0 0 0 4px #1c0c0f,5px 5px 0 rgba(0,0,0,.5);
+}
+.card h2{
+  margin:0 0 8px;font-size:26px;color:var(--gold);letter-spacing:.04em;text-align:center;
+  border-bottom:1px solid var(--line);padding-bottom:10px;
+}
+.card h2::before,.card h2::after{content:" ❦ ";color:var(--blood);font-size:18px}
+.muted{color:var(--mut)}.muted2{color:var(--parchment-dim)}
 .hidden{display:none!important}
-label{display:flex;flex-direction:column;gap:6px;margin:8px 0;font-size:14px}
-input,select{background:#0e1526;color:var(--ink);border:1px solid #33415f;border-radius:8px;padding:10px;font-size:15px;width:100%}
+label{display:flex;flex-direction:column;gap:6px;margin:8px 0;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
+input,select{
+  background:#1c0c0f;color:var(--parchment);border:1px solid var(--line);border-radius:2px;
+  padding:10px;font-size:15px;width:100%;font-family:inherit;
+}
+input:focus,select:focus{outline:2px solid var(--gold);outline-offset:1px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.btn{background:#2a3652;color:var(--ink);border:1px solid #3b4a70;border-radius:8px;padding:10px 14px;cursor:pointer;font-size:14px}
-.btn.primary{background:var(--acc);border-color:var(--acc);font-weight:700}
-.btn.danger{background:#3a1d24;border-color:#7a2e38}.btn.ghost{background:transparent}
-.btn:hover{filter:brightness(1.15)}.btn:disabled{opacity:.5;cursor:not-allowed}
-.err{color:var(--bad);min-height:1em}
+.btn{
+  background:#1c0c0f;color:var(--parchment);border:1px solid var(--gold-soft);border-radius:2px;
+  padding:10px 14px;cursor:pointer;font-size:14px;font-family:inherit;letter-spacing:.06em;
+}
+.btn.primary{background:var(--blood);border-color:var(--gold);color:#f6e9c4;font-weight:700}
+.btn.danger{background:#3a1218;border-color:#7a2e38}
+.btn.ghost{background:transparent}
+.btn:hover{border-color:var(--gold);color:var(--gold)}
+.btn.primary:hover{color:#fff;border-color:#fff}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.err{color:#e08a8a;min-height:1em;font-style:italic}
 .worldbar{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center}
-.pillrow{display:flex;gap:8px;flex-wrap:wrap}.pill{background:#0e1526;border:1px solid #33415f;border-radius:20px;padding:6px 12px;font-size:13px}
+.worldbar h2{text-align:left;border:none;padding:0}
+.worldbar h2::before{content:"Chapter · "}
+.pillrow{display:flex;gap:8px;flex-wrap:wrap}
+.pill{background:#1c0c0f;border:1px solid var(--gold-soft);border-radius:2px;padding:6px 12px;font-size:13px;letter-spacing:.05em}
 .cols{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-top:12px}
 @media(max-width:820px){.cols{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}}
-.block{background:#101829;border:1px solid #2a3652;border-radius:10px;padding:12px;margin-bottom:12px}
-.block h3{margin:0 0 8px;font-size:15px}.story{line-height:1.6;white-space:pre-wrap}
-.choices{display:flex;flex-direction:column;gap:8px}.choices button{text-align:left;background:#1c2742;border:1px solid #3b4a70;border-radius:8px;color:var(--ink);padding:12px;cursor:pointer;font-size:15px}
-.choices button:hover{border-color:var(--acc)}.customrow{display:flex;gap:8px;margin-top:8px}.customrow input{flex:1}
+.block{background:#201016;border:1px solid var(--line);border-radius:2px;padding:14px;margin-bottom:12px}
+.block h3{margin:0 0 8px;font-size:13px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold)}
+.story{line-height:1.75;white-space:pre-wrap;font-size:16px;color:var(--parchment)}
+/* drop-cap on story text */
+.story.dropcap::first-letter{
+  font-size:3.2em;float:left;line-height:.85;padding:4px 8px 0 0;color:var(--gold);
+  font-weight:700;
+}
+#eventText::first-letter{
+  font-size:3.2em;float:left;line-height:.85;padding:4px 8px 0 0;color:var(--gold);font-weight:700;
+}
+.choices{display:flex;flex-direction:column;gap:8px}
+.choices button{
+  text-align:left;background:#1c0c0f;border:1px solid var(--line);border-radius:2px;
+  color:var(--parchment);padding:12px;cursor:pointer;font-size:15px;font-family:inherit;
+}
+.choices button::before{content:"⚜ ";color:var(--gold)}
+.choices button:hover{border-color:var(--gold)}
+.customrow{display:flex;gap:8px;margin-top:8px}.customrow input{flex:1}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-.inv{display:flex;flex-wrap:wrap;gap:6px}.inv span{background:#1c2742;border:1px solid #3b4a70;border-radius:16px;padding:4px 10px;font-size:13px}
-.flags{font-size:13px;margin-top:6px}.healthbar{height:10px;background:#0e1526;border-radius:6px;margin-top:10px;overflow:hidden}#healthFill{height:100%;width:100%;background:linear-gradient(90deg,#3ecf8e,#7c6cf6)}
-.log{max-height:380px;overflow:auto;display:flex;flex-direction:column;gap:8px;font-size:13px}.log div{background:#0e1526;border:1px solid #2c3a5c;border-radius:8px;padding:8px}
-.finale{text-align:center}.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px}.modal-box{background:var(--card);border-radius:12px;padding:18px;max-width:420px;width:100%;border:1px solid #33415f}
+.inv{display:flex;flex-wrap:wrap;gap:6px}
+.inv span{background:#1c0c0f;border:1px solid var(--gold-soft);border-radius:2px;padding:4px 10px;font-size:13px}
+.flags{font-size:13px;margin-top:6px;color:var(--mut)}
+.healthbar{height:10px;background:#1c0c0f;border:1px solid var(--gold-soft);border-radius:2px;margin-top:10px;overflow:hidden}
+#healthFill{height:100%;width:100%;background:var(--blood)}
+.log{max-height:380px;overflow:auto;display:flex;flex-direction:column;gap:8px;font-size:13px}
+.log div{background:#1c0c0f;border:1px solid var(--line);border-radius:2px;padding:8px;line-height:1.5}
+.log div b{color:var(--gold);letter-spacing:.08em}
+.finale{text-align:center}
+.finale h2{font-size:32px}
+.modal{position:fixed;inset:0;background:rgba(20,8,10,.75);display:flex;align-items:center;justify-content:center;padding:16px}
+.modal-box{background:#2e1418;border-radius:2px;padding:18px;max-width:420px;width:100%;border:2px solid var(--gold)}
+.chapter-rule{display:flex;align-items:center;gap:10px;color:var(--gold);letter-spacing:.3em;font-size:11px;text-transform:uppercase;margin:4px 0 10px}
+.chapter-rule::before,.chapter-rule::after{content:"";flex:1;height:1px;background:var(--gold-soft)}

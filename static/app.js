@@ -1,5 +1,6 @@
 const $ = id => document.getElementById(id);
 const state = { choices: [], turn: 0, log: [], title: "" };
+let busyTurn = false;
 
 async function refreshStatus() {
   try {
@@ -10,14 +11,21 @@ async function refreshStatus() {
   } catch { $("statusText").textContent = "offline"; }
 }
 
+function clampHealth(h) {
+  const n = Number(h);
+  if (!Number.isFinite(n)) return 100;
+  return Math.max(0, Math.min(100, n));
+}
+
 function renderCommon(d) {
   state.turn = d.turn ?? state.turn;
   $("gTitle").textContent = state.title || d.title || "Adventure";
   $("gMeta").textContent = `Turn ${state.turn}`;
   $("pTurn").textContent = `Turn ${state.turn}`;
   $("pLoc").textContent = `📍 ${d.state?.location || "—"}`;
-  $("pHealth").textContent = `❤️ ${d.state?.health ?? "—"}`;
-  $("healthFill").style.width = `${d.state?.health ?? 100}%`;
+  const hp = d.state?.health ?? "—";
+  $("pHealth").textContent = `❤️ ${hp}`;
+  $("healthFill").style.width = `${clampHealth(d.state?.health ?? 100)}%`;
   $("invList").innerHTML = (d.state?.inventory?.length ? d.state.inventory.map(i => `<span>${escapeHtml(i)}</span>`).join("") : "— (empty)");
   $("flagList").textContent = "Flags: " + ((d.state?.flags?.length ? d.state.flags.join(", ") : "—"));
   if (d.event) $("eventText").textContent = d.event;
@@ -31,6 +39,7 @@ function renderChoices() {
   state.choices.forEach((c, i) => {
     const b = document.createElement("button");
     b.textContent = `${i + 1}. ${c}`;
+    b.disabled = busyTurn;
     b.onclick = () => doChoose(i);
     box.appendChild(b);
   });
@@ -53,8 +62,10 @@ function showFinale(title, ep) {
   $("finaleCard").scrollIntoView({ behavior: "smooth" });
 }
 function err(msg) { $("gameErr").textContent = msg || ""; }
+function setBusy(b) { busyTurn = b; $("customBtn").disabled = b; renderChoices(); }
 
 async function doStart() {
+  if (busyTurn) return;
   err(""); $("setupErr").textContent = "";
   const body = { genre: $("genre").value, style: $("style").value, setting: $("setting").value.trim(), character: $("character").value.trim() };
   if (!body.setting || !body.character) { $("setupErr").textContent = "Setting and character are required."; return; }
@@ -64,6 +75,7 @@ async function doStart() {
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || "Start failed");
     state.title = j.title; state.log = []; $("storyLog").innerHTML = "";
+    $("finaleCard").classList.add("hidden");
     showGame(true);
     renderCommon({ ...j, consequence: "" });
     $("conseqText").textContent = "The tale begins. Choose wisely.";
@@ -73,7 +85,9 @@ async function doStart() {
 }
 
 async function doChoose(i) {
+  if (busyTurn) return;
   err("");
+  setBusy(true);
   try {
     const r = await fetch("/api/choose", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ choice_index: i }) });
     const j = await r.json();
@@ -82,13 +96,15 @@ async function doChoose(i) {
     renderCommon(j);
     if (j.ending) showFinale(j.ending.title, j.ending.epilogue);
   } catch (e) { err(e.message); }
+  finally { setBusy(false); }
 }
 
 async function doCustom() {
+  if (busyTurn) return;
   const a = $("customInput").value.trim();
   if (!a) { err("Custom action must not be empty."); return; }
   if (a.length > 500) { err("Custom action must be ≤ 500 characters."); return; }
-  err(""); $("customBtn").disabled = true;
+  err(""); setBusy(true);
   try {
     const r = await fetch("/api/custom", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: a }) });
     const j = await r.json();
@@ -98,7 +114,7 @@ async function doCustom() {
     renderCommon(j);
     if (j.ending) showFinale(j.ending.title, j.ending.epilogue);
   } catch (e) { err(e.message); }
-  finally { $("customBtn").disabled = false; }
+  finally { setBusy(false); }
 }
 
 function downloadMD(md, title) {
@@ -106,7 +122,8 @@ function downloadMD(md, title) {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = (title || "story").replace(/[^\w\-]+/g, "_").slice(0, 60) + ".md";
-  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 async function doExport() {
   const r = await fetch("/api/export"); const j = await r.json();
@@ -114,26 +131,22 @@ async function doExport() {
   downloadMD(j.markdown, j.title);
 }
 async function doCopy() {
-  const r = await fetch("/api/export"); const j = await r.json();
-  if (!r.ok) { err(j.error); return; }
-  await navigator.clipboard.writeText(j.markdown);
-  err("Copied to clipboard ✓"); setTimeout(() => err(""), 2000);
+  try {
+    const r = await fetch("/api/export"); const j = await r.json();
+    if (!r.ok) { err(j.error); return; }
+    await navigator.clipboard.writeText(j.markdown);
+    err("Copied to clipboard ✓"); setTimeout(() => err(""), 2000);
+  } catch {
+    err("Copy failed in this browser.");
+  }
 }
 async function doRestart() {
   await fetch("/api/restart", { method: "POST" });
   $("finaleCard").classList.add("hidden"); showGame(false); state.title = "";
 }
 
-// settings modal — frontend NEVER stores/sends keys except POST /api/key on save
-$("settingsBtn").onclick = () => { $("settingsModal").classList.remove("hidden"); $("keyMsg").textContent = ""; };
-$("closeSettings").onclick = () => $("settingsModal").classList.add("hidden");
-$("saveKeyBtn").onclick = async () => {
-  const k = $("keyInput").value.trim();
-  $("keyMsg").textContent = "Verifying…";
-  const r = await fetch("/api/key", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: k }) });
-  const j = await r.json();
-  $("keyMsg").textContent = r.ok ? "Key verified & stored (server memory only) ✓" : ("✗ " + (j.error || "failed"));
-  $("keyInput").value = "";
+// FIX: restore() was previously nested inside the saveKeyBtn handler so it
+// never ran on page load. Moved to top level.
 async function restore() {
   try {
     const r = await fetch("/api/story");
@@ -147,8 +160,23 @@ async function restore() {
     if (j.ending) showFinale(j.ending.title, j.ending.epilogue);
   } catch {}
 }
-refreshStatus();
-restore();
+
+// settings modal — frontend NEVER stores/sends keys except POST /api/key on save
+function openSettings() { $("settingsModal").classList.remove("hidden"); $("keyMsg").textContent = ""; $("keyInput").focus(); }
+function closeSettings() { $("settingsModal").classList.add("hidden"); $("keyInput").value = ""; }
+$("settingsBtn").onclick = openSettings;
+$("closeSettings").onclick = closeSettings;
+$("settingsModal").addEventListener("click", (e) => { if (e.target === $("settingsModal")) closeSettings(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("settingsModal").classList.contains("hidden")) closeSettings(); });
+$("keyInput").addEventListener("keydown", (e) => { if (e.key === "Enter") $("saveKeyBtn").click(); });
+$("saveKeyBtn").onclick = async () => {
+  const k = $("keyInput").value.trim();
+  $("keyMsg").textContent = "Verifying…";
+  const r = await fetch("/api/key", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: k }) });
+  const j = await r.json();
+  $("keyMsg").textContent = r.ok ? "Key verified & stored (server memory only) ✓" : ("✗ " + (j.error || "failed"));
+  $("keyInput").value = "";
+  refreshStatus();
 };
 $("delKeyBtn").onclick = async () => { await fetch("/api/key", { method: "DELETE" }); $("keyMsg").textContent = "Server key cleared."; refreshStatus(); };
 
@@ -160,3 +188,4 @@ $("copyBtn").onclick = doCopy;
 $("restartBtn").onclick = doRestart;
 $("againBtn").onclick = doRestart;
 refreshStatus();
+restore();

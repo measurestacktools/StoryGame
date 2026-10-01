@@ -1,14 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="illuminated-tome">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>StoryGame — AI Adventure</title>
-<link rel="stylesheet" href="/static/style.css">
+<meta name="theme" content="ILLUMINATED-TOME-THEME oxblood burgundy antique gold storybook">
+<title>StoryGame — An Illuminated Tome</title>
+<link rel="stylesheet" href="/static/style.css?v=2">
 </head>
 <body>
+<!-- ILLUMINATED-TOME-THEME -->
 <header class="topbar">
-  <div class="brand">📖 StoryGame</div>
+  <div class="brand">StoryGame</div>
   <div class="top-actions">
     <span id="statusDot" class="dot" title="API key status"></span>
     <span id="statusText" class="status-text">checking…</span>
@@ -19,6 +21,7 @@
 <main class="layout">
   <!-- SETUP -->
   <section id="setupCard" class="card">
+    <div class="chapter-rule">Vol. I · New Tale</div>
     <h2>Start a new adventure</h2>
     <div class="grid2">
       <label>Genre
@@ -39,6 +42,7 @@
 
   <!-- GAME -->
   <section id="gameCard" class="card hidden">
+    <div class="chapter-rule">❦ The Tale Unfolds ❦</div>
     <div class="worldbar">
       <div><h2 id="gTitle">—</h2><div id="gMeta" class="muted"></div></div>
       <div class="pillrow">
@@ -50,9 +54,9 @@
 
     <div class="cols">
       <div class="maincol">
-        <div class="block"><h3>🌍 World / Event</h3><p id="eventText" class="story"></p></div>
-        <div class="block"><h3>⚡ Consequence</h3><p id="conseqText" class="story muted2">Your choices will shape the tale…</p></div>
-        <div class="block"><h3>🗺️ Choices</h3>
+        <div class="block"><h3>World / Event</h3><p id="eventText" class="story"></p></div>
+        <div class="block"><h3>Consequence</h3><p id="conseqText" class="story muted2">Your choices will shape the tale…</p></div>
+        <div class="block"><h3>Choices</h3>
           <div id="choices" class="choices"></div>
           <div class="customrow">
             <input id="customInput" maxlength="500" placeholder="Or type your own action… (≤500 chars)">
@@ -67,18 +71,19 @@
         <p id="gameErr" class="err"></p>
       </div>
       <aside class="sidecol">
-        <div class="block"><h3>🎒 Inventory & State</h3>
+        <div class="block"><h3>Inventory &amp; State</h3>
           <div id="invList" class="inv">—</div>
           <div id="flagList" class="flags muted"></div>
           <div class="healthbar"><div id="healthFill"></div></div>
         </div>
-        <div class="block"><h3>📜 Story Log</h3><div id="storyLog" class="log"></div></div>
+        <div class="block"><h3>Story Log</h3><div id="storyLog" class="log"></div></div>
       </aside>
     </div>
   </section>
 
   <!-- FINALE -->
   <section id="finaleCard" class="card hidden finale">
+    <div class="chapter-rule">❦ Fin ❦</div>
     <h2 id="endTitle">The End</h2>
     <p id="endEpilogue" class="story"></p>
     <div class="toolbar">
@@ -103,6 +108,6 @@
   </div>
 </div>
 
-<script src="/static/app.js"></script>
+<script src="/static/app.js?v=2"></script>
 </body>
 </html>
