@@ -100,6 +100,11 @@ input:focus,select:focus{outline:2px solid var(--gold);outline-offset:1px}
 .log{max-height:380px;overflow:auto;display:flex;flex-direction:column;gap:8px;font-size:13px}
 .log div{background:#1c0c0f;border:1px solid var(--line);border-radius:2px;padding:8px;line-height:1.5}
 .log div b{color:var(--gold);letter-spacing:.08em}
+.codex{border:1px solid var(--gold-soft)}
+.codex summary{cursor:pointer;color:var(--gold);font-size:13px;letter-spacing:.22em;text-transform:uppercase;list-style:none}
+.codex summary::before{content:"❦ "}
+.codex-body{margin-top:8px;font-size:13px;line-height:1.7;display:flex;flex-direction:column;gap:4px}
+.codex-body b{color:var(--gold)}
 .finale{text-align:center}
 .finale h2{font-size:32px}
 .modal{position:fixed;inset:0;background:rgba(20,8,10,.75);display:flex;align-items:center;justify-content:center;padding:16px}

@@ -103,6 +103,97 @@ def clamp_state(state: Dict[str, Any]) -> Dict[str, Any]:
     return {"health": health, "inventory": inv, "flags": flags, "location": loc}
 
 
+# ---- persistent world state (Holmes/AI-Dungeon pattern, additive) ----
+# Tracks long-running continuity so 10+ turn stories don't drift:
+# who exists, where things are, what's important, what's unresolved.
+WS_CAPS = {"characters": 12, "locations": 12, "items": 20, "open_threads": 12}
+WS_MAX_STR = 120
+
+
+def default_world_state(character: str = "", setting: str = "") -> Dict[str, Any]:
+    ws: Dict[str, Any] = {"characters": [], "locations": [], "items": [],
+                          "open_threads": [], "turn": 0}
+    if (character or "").strip():
+        ws["characters"] = [{"name": character.strip()[:WS_MAX_STR], "note": "protagonist"}]
+    if (setting or "").strip():
+        ws["locations"] = [setting.strip()[:WS_MAX_STR]]
+    return ws
+
+
+def _coerce_ws_str_list(val: Any, limit: int) -> List[str]:
+    out: List[str] = []
+    if not isinstance(val, list):
+        return out
+    for x in val:
+        if isinstance(x, dict):
+            # allow {"name": ...} / {"text": ...} shapes from the model
+            x = x.get("name") or x.get("text") or x.get("title") or ""
+        s = str(x or "").strip()
+        if s:
+            out.append(s[:WS_MAX_STR])
+        if len(out) >= limit:
+            break
+    # dedupe preserving order (case-insensitive)
+    seen, deduped = set(), []
+    for s in out:
+        k = s.lower()
+        if k not in seen:
+            seen.add(k)
+            deduped.append(s)
+    return deduped
+
+
+def _coerce_ws_characters(val: Any) -> List[Dict[str, str]]:
+    out: List[Dict[str, str]] = []
+    if not isinstance(val, list):
+        return out
+    for x in val:
+        if isinstance(x, dict):
+            name = str(x.get("name", "") or "").strip()[:WS_MAX_STR]
+            note = str(x.get("note", "") or x.get("desc", "") or "")[:WS_MAX_STR]
+        else:
+            name, note = str(x or "").strip()[:WS_MAX_STR], ""
+        if name:
+            out.append({"name": name, "note": note})
+        if len(out) >= WS_CAPS["characters"]:
+            break
+    # dedupe by name preserving order
+    seen, deduped = set(), []
+    for c in out:
+        k = c["name"].lower()
+        if k not in seen:
+            seen.add(k)
+            deduped.append(c)
+    return deduped
+
+
+def clamp_world_state(ws: Any) -> Dict[str, Any]:
+    """Cap world-state size. Never raises — returns a safe dict."""
+    if not isinstance(ws, dict):
+        return default_world_state()
+    try:
+        turn = int(ws.get("turn", 0))
+    except Exception:
+        turn = 0
+    turn = max(0, min(999, turn))
+    return {
+        "characters": _coerce_ws_characters(ws.get("characters", [])),
+        "locations": _coerce_ws_str_list(ws.get("locations", []), WS_CAPS["locations"]),
+        "items": _coerce_ws_str_list(ws.get("items", []), WS_CAPS["items"]),
+        "open_threads": _coerce_ws_str_list(ws.get("open_threads", []), WS_CAPS["open_threads"]),
+        "turn": turn,
+    }
+
+
+def compact_world_state(ws: Any) -> str:
+    """Compact JSON for prompts. Truncated so prompts stay small."""
+    try:
+        s = json.dumps(ws if isinstance(ws, dict) else {}, ensure_ascii=False)
+    except Exception:
+        return "{}"
+    return s[:1500]
+
+
 def call_groq_json(system: str, user: str, max_tokens: int = 1400, temperature: float = 0.9) -> Dict[str, Any]:
     key = get_effective_key()
     if not key:
@@ -129,12 +220,16 @@ def call_groq_json(system: str, user: str, max_tokens: int = 1400, temperature: 
 START_SYSTEM = (
     "You are a game master for an interactive branching adventure. "
     "Maintain strict state continuity (health 0-100, inventory, flags, characters, events, location). "
+    "You also maintain a compact world_state {characters [{name, note}], locations [], items [], open_threads [], turn}. "
+    "Keep world_state consistent across turns: carry entries forward unless logically resolved/removed. "
     "Always reply with valid JSON only, no markdown fences."
 )
 CHOOSE_SYSTEM = (
     "You are a game master for an interactive branching adventure. "
-    "The player state and story-so-far are given. Apply consequences logically: "
+    "The player state, world_state, and story-so-far are given. Apply consequences logically: "
     "update health (damage/heal), add/remove inventory items, set flags, move location, track characters. "
+    "Also return an updated world_state: preserve characters/locations/items/open_threads continuity, "
+    "add newly introduced people/places/items/plot-threads (capped), resolve finished threads by removing them. "
     "After 6-10 turns, or when the story naturally concludes or health hits 0, set an 'ending' "
     "object {title, epilogue}. Otherwise ending must be null. "
     "Always reply with valid JSON only."
@@ -181,6 +276,17 @@ def build_markdown(story: Dict[str, Any]) -> str:
     lines.append(f"**Health:** {st.get('health')} · **Location:** {st.get('location')}")
     lines.append(f"**Inventory:** {', '.join(st.get('inventory', [])) or '—'}")
     lines.append(f"**Flags:** {', '.join(st.get('flags', [])) or '—'}")
+    ws = story.get("world_state")
+    if isinstance(ws, dict):
+        lines.append("")
+        lines.append("## Story so far (codex)")
+        chars = ws.get("characters", []) or []
+        lines.append("**Characters:** " + (", ".join(
+            f"{c.get('name','')}" + (f" ({c.get('note','')})" if c.get("note") else "")
+            for c in chars if isinstance(c, dict)) or "—"))
+        for k in ("locations", "items", "open_threads"):
+            vals = ws.get(k, []) or []
+            lines.append(f"**{k.replace('_', ' ').title()}:** " + (", ".join(str(v) for v in vals) or "—"))
     if story.get("ending"):
         lines.append("")
         lines.append(f"# Ending: {story['ending'].get('title','')}")
@@ -287,7 +393,9 @@ def api_start(body: StartIn):
         "Return JSON with keys: title (string), opening (2-4 vivid sentences), "
         "choices (array of exactly 3 short distinct action strings), "
         "state (object: health int 0-100 starting at 100, inventory array of strings, "
-        "flags array of strings, location string)."
+        "flags array of strings, location string), "
+        "world_state (object: characters array of {name, note} including the protagonist, "
+        "locations array including the setting, items array, open_threads array with 1-2 hooks, turn 0)."
     )
     try:
         data = call_groq_json(START_SYSTEM, user)
@@ -300,6 +408,14 @@ def api_start(body: StartIn):
         state = clamp_state(data.get("state", {}) if isinstance(data.get("state"), dict) else {})
         if not state["location"] or state["location"] == "Unknown":
             state["location"] = setting[:120]
+        # world_state is best-effort: model may omit it — fall back to seeded default
+        raw_ws = data.get("world_state")
+        world_state = clamp_world_state(raw_ws) if isinstance(raw_ws, dict) else default_world_state(character, setting)
+        if not world_state["characters"]:
+            world_state["characters"] = [{"name": character[:WS_MAX_STR], "note": "protagonist"}]
+        if not world_state["locations"]:
+            world_state["locations"] = [setting[:WS_MAX_STR]]
+        world_state["turn"] = 0
     except RuntimeError as e:
         msg = str(e)
         if msg.startswith("NO_KEY"):
@@ -311,23 +427,25 @@ def api_start(body: StartIn):
         # malformed JSON → fallback so game stays playable
         fb = fallback_start(genre, setting, character, style)
         title, opening, choices, state = fb["title"], fb["opening"], fb["choices"], clamp_state(fb["state"])
+        world_state = default_world_state(character, setting)
 
     _STORY = {
         "title": title, "genre": genre, "style": style,
         "setting": setting, "character": character,
-        "state": state, "turn": 0, "choices": choices,
+        "state": state, "world_state": world_state, "turn": 0, "choices": choices,
         "log": [{"turn": 0, "type": "opening", "text": opening}],
         "opening": opening, "event": opening,
         "consequence": "", "ending": None,
     }
     return {"title": title, "opening": opening, "event": opening,
-            "choices": choices, "state": state, "turn": 0}
+            "choices": choices, "state": state, "world_state": world_state, "turn": 0}
 
 
 def _advance(action_text: str):
     global _STORY
     assert _STORY is not None
     state = _STORY["state"]
+    world_state = clamp_world_state(_STORY.get("world_state", default_world_state()))
     log = _STORY["log"]
     history = "\n".join(
         f"T{e.get('turn')}: {str(e.get('text',''))[:200]} | {str(e.get('consequence',''))[:200]} | {str(e.get('event',''))[:200]}"
@@ -336,6 +454,7 @@ def _advance(action_text: str):
     user = (
         f"Title: {_STORY['title']}\nGenre: {_STORY['genre']} Style: {_STORY['style']}\n"
         f"Character: {_STORY['character']}\nCurrent state: {json.dumps(state)}\n"
+        f"World so far (compact, must stay consistent): {compact_world_state(world_state)}\n"
         f"Turn: {_STORY['turn']}\nStory so far:\n{history}\n\n"
         f"Player action: {action_text}\n\n"
         "Return JSON with: consequence (1-3 sentences resolving the action), "
@@ -343,13 +462,28 @@ def _advance(action_text: str):
         "choices (exactly 3 new distinct actions, or [] if ending), "
         "state (updated full object: health, inventory, flags, location — preserve continuity, "
         "carry items/flags forward unless logically removed), "
+        "world_state (updated full object: characters [{name, note}], locations [], items [], "
+        "open_threads [] — carry every entry forward unless resolved, add new ones, keep each list capped), "
         "ending (null normally; {title, epilogue} only when story should conclude — e.g. health<=0 or arc resolved)."
     )
+    world_ok = True
     try:
         data = call_groq_json(CHOOSE_SYSTEM, user)
         consequence = str(data.get("consequence", ""))[:3000] or "Nothing happens."
         event = str(data.get("event", ""))[:3000] or "The scene shifts."
         new_state = clamp_state(data.get("state", state) if isinstance(data.get("state"), dict) else state)
+        # best-effort world_state: if missing/invalid, keep old (story still works)
+        raw_ws = data.get("world_state", None)
+        if isinstance(raw_ws, dict):
+            try:
+                new_world = clamp_world_state(raw_ws)
+                world_ok = True
+            except Exception:
+                new_world = dict(world_state)
+                world_ok = False
+        else:
+            new_world = dict(world_state)
+            world_ok = False
         ending = data.get("ending")
         if ending is not None:
             if not isinstance(ending, dict):
@@ -381,6 +515,8 @@ def _advance(action_text: str):
             fb = fallback_continue(action_text, state)
             consequence, event, new_state, ending = fb["consequence"], fb["event"], clamp_state(fb["state"]), None
             choices = fb["choices"]
+            new_world = dict(world_state)  # keep old world_state; story still works
+            world_ok = False
         else:
             return JSONResponse({"error": msg}, status_code=502)
     turn = _STORY["turn"] + 1
@@ -389,12 +525,15 @@ def _advance(action_text: str):
         ending = {"title": "A Fitting Pause",
                   "epilogue": event + " The chapter closes — for now. Your legend will continue another day."}
         choices = []
-    _STORY.update({"turn": turn, "state": new_state, "choices": choices,
+    new_world["turn"] = turn
+    new_world = clamp_world_state(new_world)
+    _STORY.update({"turn": turn, "state": new_state, "world_state": new_world, "choices": choices,
                    "consequence": consequence, "event": event, "ending": ending})
     _STORY["log"].append({"turn": turn, "type": "action", "text": action_text,
                           "consequence": consequence, "event": event})
     out: Dict[str, Any] = {"consequence": consequence, "event": event, "choices": choices,
-                           "state": new_state, "turn": turn, "ending": ending}
+                           "state": new_state, "world_state": new_world,
+                           "world_state_ok": world_ok, "turn": turn, "ending": ending}
     return out
 
 

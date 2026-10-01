@@ -30,8 +30,23 @@ function renderCommon(d) {
   $("flagList").textContent = "Flags: " + ((d.state?.flags?.length ? d.state.flags.join(", ") : "—"));
   if (d.event) $("eventText").textContent = d.event;
   if (d.consequence) $("conseqText").textContent = d.consequence;
+  renderCodex(d.world_state);
   state.choices = d.choices || [];
   renderChoices();
+}
+
+function renderCodex(ws) {
+  const el = $("codexBody");
+  if (!el) return;
+  if (!ws || typeof ws !== "object") { el.textContent = "Codex empty — the tale keeps no notes yet."; return; }
+  const chars = (ws.characters || []).map(c => typeof c === "object" ? `${c.name}${c.note ? ` (${c.note})` : ""}` : String(c));
+  const locs = ws.locations || [], items = ws.items || [], threads = ws.open_threads || [];
+  el.innerHTML =
+    `<div><b>Turn:</b> ${escapeHtml(ws.turn ?? "?")}</div>` +
+    `<div><b>Characters:</b> ${escapeHtml(chars.join(", ") || "—")}</div>` +
+    `<div><b>Locations:</b> ${escapeHtml(locs.join(", ") || "—")}</div>` +
+    `<div><b>Items:</b> ${escapeHtml(items.join(", ") || "—")}</div>` +
+    `<div><b>Open threads:</b> ${escapeHtml(threads.join(" · ") || "—")}</div>`;
 }
 
 function renderChoices() {
