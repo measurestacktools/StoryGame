@@ -3,6 +3,28 @@
 Branching interactive fiction on **FastAPI + vanilla JS + Groq (`openai/gpt-oss-120b`)**.
 Layout: **WORLD → EVENT → CHOICES → CONSEQUENCE**, with story log, inventory/health, custom actions, multiple endings, and `.md` export.
 
+## Features
+- Genre/setting/character/style setup, AI opening + 3 choices per turn
+- Persistent state (health, inventory, flags) across turns, custom free-form actions
+- Turn counter, story log, multiple endings, export, restart
+
+## Requirements
+- Python 3.10+
+- A free Groq API key ([console.groq.com/keys](https://console.groq.com/keys))
+- Internet (AI calls go to Groq)
+
+## Installation
+```bash
+python -m venv .venv
+# Windows: .venv\Scripts\activate | macOS/Linux: source .venv/bin/activate
+pip install -r requirements.txt
+copy .env.example .env   # add GROQ_API_KEY  (or paste the key in Settings later)
+```
+
+## Limitations
+- Single in-memory story (restart clears it); auto-finale around turn 10
+- Needs a Groq key + internet; free-tier rate limits may need pacing
+
 ## Quickstart
 ```bash
 pip install -r requirements.txt
