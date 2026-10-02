@@ -22,8 +22,13 @@ copy .env.example .env   # add GROQ_API_KEY  (or paste the key in Settings later
 ```
 
 ## Limitations
-- Single in-memory story (restart clears it); auto-finale around turn 10
+- Short, contained adventure by design: single in-memory story (restart clears it); auto-finale at turn 10
 - Needs a Groq key + internet; free-tier rate limits may need pacing
+
+## How to play
+1. Pick genre/style, enter setting + character → **Begin Adventure**
+2. Pick one of 3 choices (or type a custom action ≤500 chars) each turn
+3. Watch health/inventory/flags + codex; reach an ending, then **Export** or **Restart**
 
 ## Quickstart
 ```bash
@@ -48,6 +53,13 @@ python -m uvicorn app:app --port 8013
 
 Genres: Fantasy, Sci-Fi, Mystery, Horror, Comedy. Styles: Epic, Dark, Light.
 Endings: Groq may return `ending:{title, epilogue}`; auto-finale at turn 10; health ≤ 0 forces an ending.
+
+## Troubleshooting
+- `No API key` — open Settings and paste a Groq key, or set `GROQ_API_KEY` in `.env`.
+- `Invalid API key` — key rejected by Groq; generate a fresh one at console.groq.com/keys.
+- `Groq is rate-limited` — wait a few seconds and retry.
+- Story already ended — endings (including the turn-10 auto-finale) are final; press Restart/Play Again.
+- Port in use — run `python -m uvicorn app:app --port 8013` on a free port.
 
 ## Tests
 ```bash
